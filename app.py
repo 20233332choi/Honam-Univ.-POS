@@ -463,6 +463,73 @@ def handle_complete_serving(data):
         
     emit('orderUpdate', load_shared_db(), broadcast=True)
 
+@socketio.on('cancelTicket')
+def handle_cancel_ticket(data):
+    """주문 현황판에서 티켓 전체 취소 처리"""
+    if not data: return
+    order_id = int(data.get('orderId'))
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    try:
+        # 해당 티켓 조회
+        cursor.execute('SELECT table_id, items FROM pending_orders WHERE order_id = ?', (order_id,))
+        row = cursor.fetchone()
+        if not row:
+            print(f"cancelTicket: 티켓 #{order_id} 없음")
+            return
+        
+        table_id = row[0]
+        items = json.loads(row[1])
+        
+        # 테이블 menus에서 티켓 품목 감산
+        cursor.execute('SELECT menus, price, paid_price, paid_menus, status FROM tables WHERE table_id = ?', (table_id,))
+        t_row = cursor.fetchone()
+        if t_row:
+            menus = json.loads(t_row[0])
+            paid_menus = json.loads(t_row[3])
+            
+            cancel_log_parts = []
+            for name, qty in items.items():
+                if qty > 0 and name in menus:
+                    menus[name] = max(0, menus[name] - qty)
+                    if menus[name] <= 0:
+                        del menus[name]
+                    cancel_log_parts.append(f"- [취소] {name} x{qty} (주문 현황 취소)")
+            
+            new_price = sum(find_price(k) * v for k, v in menus.items())
+            
+            if not menus and not paid_menus:
+                new_status = 'empty'
+                cursor.execute('DELETE FROM away_timers WHERE table_id = ?', (table_id,))
+            else:
+                new_status = 'cooking' if menus else 'served'
+            
+            cursor.execute('''
+                UPDATE tables
+                SET status = ?, price = ?, menus = ?
+                WHERE table_id = ?
+            ''', (new_status, new_price, json.dumps(menus), table_id))
+            
+            # 취소 이력 등록
+            if cancel_log_parts:
+                cursor.execute('''
+                    INSERT INTO order_history (table_id, time, items, cost)
+                    VALUES (?, ?, ?, ?)
+                ''', (table_id, get_mobile_safe_time(), '\n'.join(cancel_log_parts), 0))
+        
+        # pending_orders에서 티켓 삭제
+        cursor.execute('DELETE FROM pending_orders WHERE order_id = ?', (order_id,))
+        conn.commit()
+        print(f"🗑️ 주문서 #{order_id} (테이블 #{table_id}) 전체 취소 완료")
+    except Exception as e:
+        print(f"cancelTicket 에러: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+    
+    emit('orderUpdate', load_shared_db(), broadcast=True)
+
 def decrease_item_internal(cursor, table_id, menu_name, item_type, qty):
     """table_id번 테이블의 menu_name 품목을 item_type(cooking/served)에 맞게 qty만큼 감산 처리"""
     cursor.execute('SELECT menus, paid_menus, price, paid_price, status FROM tables WHERE table_id = ?', (table_id,))

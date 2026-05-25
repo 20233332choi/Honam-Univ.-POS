@@ -415,7 +415,12 @@ function renderOrders() {
                 <div class="order-ticket">
                     <div class="ticket-header">
                         <div><span style="font-size:20px; font-weight:bold; color:var(--accent);">#${tableId}번</span></div>
-                        <div class="ticket-timer" id="timer-display-ticket-${id}"><i class="fa-regular fa-clock"></i> ${calculateOrderTime(ticket.timestamp)}</div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div class="ticket-timer" id="timer-display-ticket-${id}"><i class="fa-regular fa-clock"></i> ${calculateOrderTime(ticket.timestamp)}</div>
+                            <button class="ticket-cancel-btn" onclick="cancelTicketFromBoard(${id}, ${tableId})" title="이 티켓 전체 취소">
+                                <i class="fa-solid fa-xmark"></i> 취소
+                            </button>
+                        </div>
                     </div>
                     <div class="ticket-body">${itemsHtml}</div>
                     ${footerHtml}
@@ -491,6 +496,45 @@ function completeCookingFromBoard(orderId) {
     } else {
         queueOfflineAction('completeServing', payload);
         alert("⚠️ 오프라인 상태입니다. 서빙 완료 액션이 큐에 임시 저장되었습니다.");
+    }
+}
+
+// 주문 현황에서 티켓 전체 취소
+function cancelTicketFromBoard(orderId, tableId) {
+    const overlay = document.getElementById('cancel-ticket-confirm-overlay');
+    if (overlay) {
+        document.getElementById('cancel-ticket-confirm-text').innerText =
+            `#${tableId}번 테이블의 이 주문 티켓 전체를 취소하시겠습니까?\n조리 취소이므로 매출에 반영되지 않습니다.`;
+        overlay.style.display = 'flex';
+        overlay.dataset.orderId = orderId;
+        overlay.dataset.tableId = tableId;
+    } else {
+        if (confirm(`#${tableId}번 테이블 티켓을 취소하시겠습니까?`)) {
+            _doTicketCancel(orderId);
+        }
+    }
+}
+
+function _doTicketCancel(orderId) {
+    const payload = { orderId: parseInt(orderId) };
+    if (socket && socket.connected) {
+        socket.emit('cancelTicket', payload);
+    } else {
+        alert("⚠️ 오프라인 상태입니다. 연결 후 다시 시도해 주세요.");
+    }
+}
+
+function closeCancelTicketConfirm() {
+    const overlay = document.getElementById('cancel-ticket-confirm-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function confirmCancelTicket() {
+    const overlay = document.getElementById('cancel-ticket-confirm-overlay');
+    if (overlay) {
+        const orderId = overlay.dataset.orderId;
+        _doTicketCancel(orderId);
+        overlay.style.display = 'none';
     }
 }
 

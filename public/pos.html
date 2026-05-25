@@ -40,6 +40,25 @@
         0%, 100% { transform: scale(1); box-shadow: 0 4px 20px rgba(245,158,11,0.5); }
         50% { transform: scale(1.03); box-shadow: 0 6px 28px rgba(245,158,11,0.8); }
     }
+    .ticket-cancel-btn {
+        background: rgba(239, 68, 68, 0.15);
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        color: #f87171;
+        border-radius: 8px;
+        padding: 5px 12px;
+        font-size: 12px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.2s, transform 0.1s;
+        white-space: nowrap;
+    }
+    .ticket-cancel-btn:hover {
+        background: rgba(239, 68, 68, 0.35);
+        transform: scale(1.05);
+    }
+    .ticket-cancel-btn:active {
+        transform: scale(0.97);
+    }
     </style>
 
     <header>
@@ -245,6 +264,21 @@
                 <div id="archive-detail-items"></div>
             </div>
             <button class="f-btn save" style="width:100%; padding:12px; flex-shrink:0;" onclick="closeArchiveDetailModal()">닫기</button>
+        </div>
+    </div>
+
+    <!-- 모달: 티켓 취소 확인 -->
+    <div class="overlay" id="cancel-ticket-confirm-overlay" style="display:none;">
+        <div class="modal" style="max-width:400px; height:auto; padding:28px; gap:20px;">
+            <div style="text-align:center;">
+                <div style="font-size:48px; margin-bottom:12px;">🗑️</div>
+                <h3 style="margin:0 0 12px 0; color:var(--warning); font-size:17px;">주문 취소 확인</h3>
+                <p id="cancel-ticket-confirm-text" style="color:var(--text-sub); font-size:13px; line-height:1.7; margin:0; white-space:pre-line;"></p>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:8px;">
+                <button class="f-btn" style="flex:1; padding:12px; background:#334155; color:#fff; font-size:14px;" onclick="closeCancelTicketConfirm()">아니오</button>
+                <button class="f-btn clear" style="flex:1; padding:12px; font-size:14px; font-weight:bold;" onclick="confirmCancelTicket()">예, 취소합니다</button>
+            </div>
         </div>
     </div>
 

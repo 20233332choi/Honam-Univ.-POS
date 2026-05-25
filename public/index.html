@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Festival Staff Order (Add-on Fixed)</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #38bdf8;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Malgun Gothic', sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 12px; min-height: 100vh; display: flex; flex-direction: column; }
+        
+        h2 { font-size: 18px; margin: 5px 0 15px 0; display: flex; justify-content: space-between; align-items: center; }
+        .status-badge { font-size: 11px; padding: 4px 8px; border-radius: 6px; background: #334155; color: var(--accent); }
+
+        /* 테이블 그리드 스타일 */
+        .section-title { font-size: 13px; color: var(--text-sub); margin-bottom: 8px; font-weight: bold; }
+        .table-select-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px; }
+        .t-btn { background: #1e293b; border: 2px solid #334155; color: white; padding: 12px 0; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer; transition: all 0.1s ease; }
+        .t-btn.selected { background: var(--accent); color: #000; border-color: var(--accent); }
+        .t-btn.has-order { border-color: var(--warning); color: var(--warning); }
+        .t-btn.reserved { border-color: #9b59b6; color: #9b59b6; opacity: 0.6; }
+
+        /* 카테고리 탭 */
+        .category-container { display: flex; gap: 6px; margin-bottom: 12px; }
+        .cat-btn { flex: 1; padding: 10px 0; background: #334155; border: none; color: white; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; }
+        .cat-btn.active { background: var(--text-main); color: #000; }
+
+        /* 메뉴 리스트 */
+        .menu-list-box { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 15px; }
+        .menu-card { background: var(--card-bg); border: 1px solid #334155; border-radius: 12px; padding: 12px; cursor: pointer; position: relative; }
+        .menu-card:active { transform: scale(0.98); }
+        .menu-card .name { font-size: 14px; font-weight: bold; margin-bottom: 4px; }
+        .menu-card .price { font-size: 12px; color: var(--accent); }
+        
+        .menu-card.soldout { opacity: 0.3; pointer-events: none; border-style: dashed; }
+        .menu-card.soldout::after { content: '품절'; position: absolute; top: 8px; right: 8px; background: var(--danger); color: white; font-size: 10px; padding: 1px 4px; border-radius: 4px; }
+
+        /* 장바구니 */
+        .cart-box { background: #1e293b; border-radius: 14px; padding: 12px; flex: 1; display: flex; flex-direction: column; margin-bottom: 60px; min-height: 150px; }
+        .cart-items { flex: 1; overflow-y: auto; max-height: 200px; }
+        .cart-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #334155; font-size: 13px; }
+        .qty-controls button { background: #334155; border: none; color: white; width: 24px; height: 24px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        
+        .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: 15px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #475569; color: var(--accent); }
+
+        /* 하단 전송 버튼 */
+        .send-btn { position: fixed; bottom: 0; left: 0; width: 100%; padding: 16px; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 -4px 10px rgba(0,0,0,0.5); }
+        .send-btn:disabled { background: #334155; color: var(--text-sub); cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <h2>
+        <span>📱 직원 무선 오더기</span>
+        <span class="status-badge" id="net-status">연결 중...</span>
+    </h2>
+
+    <div class="section-title">🪑 주문할 테이블 선택</div>
+    <div class="table-select-grid" id="table-zone"></div>
+
+    <div class="section-title">🍔 메뉴 선택</div>
+    <div class="category-container">
+        <button class="cat-btn active" id="tab-main" onclick="changeCat('main')">메인</button>
+        <button class="cat-btn" id="tab-side" onclick="changeCat('side')">사이드</button>
+        <button class="cat-btn" id="tab-drink" onclick="changeCat('drink')">음료</button>
+    </div>
+    <div class="menu-list-box" id="menu-zone"></div>
+
+    <div class="section-title">🛒 현재 테이블 장바구니</div>
+    <div class="cart-box">
+        <div class="cart-items" id="cart-zone"></div>
+        <div class="total-row">
+            <span>추가 주문 금액</span>
+            <span><span id="cart-total">0</span>원</span>
+        </div>
+    </div>
+
+    <button class="send-btn" id="btn-send" onclick="submitOrderToKitchen()" disabled>🚀 주방 태블릿으로 주문 전송</button>
+
+    <script>
+        const SERVER_URL = "https://uninvited-shrimp-capture.ngrok-free.dev";
+        let socket;
+
+        const MENUS = {
+            main: { "풀드포크 플래터": 25000, "콘 치즈 누룽지 닭전": 20000, "파닭구이": 20000, "매콤순대볶음": 18000 },
+            side: { "해물 나가사끼": 15000, "매콤 닭발 튀김": 14000, "계란말이": 12000, "묵사발": 12000, "불닭냉면": 8000 },
+            drink: { "무등산 슬러쉬": 3000, "콜라 슬러쉬": 3000, "매화수": 5000, "테라": 5000, "음료": 2000, "생수": 1000 }
+        };
+
+        let db = { tables: {}, totalSales: 0, itemSales: {}, history: [], soldOut: {}, checkedItems: {} };
+        let selectedTable = null;
+        let staffCart = {};
+        let currentCategory = 'main';
+
+        try {
+            socket = io(SERVER_URL, { transports: ['websocket', 'polling'] });
+
+            socket.on('connect', () => {
+                document.getElementById('net-status').innerText = "🟢 실시간 연결됨";
+                document.getElementById('net-status').style.color = "#10b981";
+            });
+
+            socket.on('disconnect', () => {
+                document.getElementById('net-status').innerText = "🔴 연결 끊김";
+                document.getElementById('net-status').style.color = "#ef4444";
+            });
+
+            socket.on('orderUpdate', (serverDb) => {
+                if(serverDb && serverDb.tables) {
+                    db = serverDb;
+                    renderTableGrid();
+                    renderMenuGrid();
+                }
+            });
+        } catch(e) {
+            console.error("서버 연결 실패", e);
+        }
+
+        function renderTableGrid() {
+            const zone = document.getElementById('table-zone');
+            zone.innerHTML = '';
+            
+            const layoutMatrix = [
+                [15, 10, 5], [14, 9, 4], [13, 8, 3], [12, 7, 2], [11, 6, 1]
+            ];
+            const renderOrder = [];
+            for(let row=0; row<5; row++) {
+                for(let col=0; col<3; col++) { renderOrder.push(layoutMatrix[row][col]); }
+            }
+
+            renderOrder.forEach(i => {
+                const t = db.tables[i];
+                let stateClass = '';
+                let extraTxt = '';
+
+                if(selectedTable === i) {
+                    stateClass = 'selected';
+                } else if(t && t.status === 'reserved') {
+                    stateClass = 'reserved';
+                    extraTxt = ' (예약)';
+                } else if(t && (t.status === 'cooking' || t.status === 'served')) {
+                    stateClass = 'has-order';
+                    extraTxt = ' (식사중)';
+                }
+
+                zone.innerHTML += `<button class="t-btn ${stateClass}" onclick="selectTable(${i})">#${i}${extraTxt}</button>`;
+            });
+        }
+
+        function selectTable(num) {
+            const t = db.tables[num];
+            if(t && t.status === 'reserved') {
+                alert("예약석 지정 테이블입니다. 주방 태블릿에서 먼저 예약 해제를 해주세요.");
+                return;
+            }
+            selectedTable = num;
+            staffCart = {}; // 테이블 선택 시 장바구니 새로 리셋
+            renderTableGrid();
+            updateCartUI();
+        }
+
+        function changeCat(cat) {
+            currentCategory = cat;
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + cat).classList.add('active');
+            renderMenuGrid();
+        }
+
+        function renderMenuGrid() {
+            const zone = document.getElementById('menu-zone');
+            zone.innerHTML = '';
+            
+            Object.keys(MENUS[currentCategory]).forEach(name => {
+                const isSoldOut = db.soldOut && db.soldOut[name] === true;
+                const soldOutClass = isSoldOut ? 'soldout' : '';
+                
+                zone.innerHTML += `
+                    <div class="menu-card ${soldOutClass}" onclick="addToStaffCart('${name}')">
+                        <div class="name">${name}</div>
+                        <div class="price">${MENUS[currentCategory][name].toLocaleString()}원</div>
+                    </div>`;
+            });
+        }
+
+        function addToStaffCart(name) {
+            if(!selectedTable) {
+                alert("주문할 테이블 번호를 먼저 선택해 주세요!");
+                return;
+            }
+            if(db.soldOut && db.soldOut[name] === true) {
+                alert("품절된 메뉴입니다.");
+                return;
+            }
+            staffCart[name] = (staffCart[name] || 0) + 1;
+            updateCartUI();
+        }
+
+        function changeQty(name, amt) {
+            staffCart[name] = (staffCart[name] || 0) + amt;
+            if(staffCart[name] <= 0) delete staffCart[name];
+            updateCartUI();
+        }
+
+        function findPrice(name) {
+            for(let c in MENUS) { if(MENUS[c][name]) return MENUS[c][name]; }
+            return 0;
+        }
+
+        function updateCartUI() {
+            const zone = document.getElementById('cart-zone');
+            const totalSpan = document.getElementById('cart-total');
+            const sendBtn = document.getElementById('btn-send');
+            
+            zone.innerHTML = '';
+            let total = 0;
+
+            Object.keys(staffCart).forEach(name => {
+                const cost = findPrice(name) * staffCart[name];
+                total += cost;
+                zone.innerHTML += `
+                    <div class="cart-row">
+                        <span>${name}</span>
+                        <div class="qty-controls">
+                            <button onclick="changeQty('${name}', -1)">-</button>
+                            <span style="display:inline-block; width:25px; text-align:center; font-weight:bold;">${staffCart[name]}</span>
+                            <button onclick="changeQty('${name}', 1)">+</button>
+                        </div>
+                    </div>`;
+            });
+
+            if(Object.keys(staffCart).length === 0) {
+                zone.innerHTML = '<div style="text-align:center; color:var(--text-sub); font-size:12px; padding:30px 0;">지정된 메뉴가 없습니다.</div>';
+            }
+
+            totalSpan.innerText = total.toLocaleString();
+            sendBtn.disabled = (!selectedTable || Object.keys(staffCart).length === 0);
+        }
+
+        // 🔥 [핵심 고친 함수] 주문 전송 시 기존 메뉴 내역 파괴 방지 및 누적 합산 로직
+        function submitOrderToKitchen() {
+            if(!selectedTable || Object.keys(staffCart).length === 0) return;
+
+            // 1. 기존 테이블 데이터가 아예 없거나, 결제가 끝나 비어있던 테이블이면 새 구조를 파줍니다.
+            if(!db.tables[selectedTable] || db.tables[selectedTable].status === 'empty' || db.tables[selectedTable].status === 'paid') {
+                db.tables[selectedTable] = {
+                    menus: {},
+                    paidMenus: {},
+                    price: 0,
+                    paidPrice: 0,
+                    status: 'cooking',
+                    timestamp: Date.now()
+                };
+            }
+
+            const targetTable = db.tables[selectedTable];
+
+            // ⚠️ [중요 페치] 기존에 먹던 미결제 메뉴(menus) 리스트에, 방금 홀직원이 추가한(staffCart) 수량을 누적시킵니다!
+            Object.keys(staffCart).forEach(menuName => {
+                const addQty = staffCart[menuName];
+                targetTable.menus[menuName] = (targetTable.menus[menuName] || 0) + addQty;
+            });
+
+            // 2. 조리 대기 상태로 변경 후 총금액 재계산
+            targetTable.status = 'cooking';
+            targetTable.timestamp = Date.now(); // 주방 타임라인 카드가 가장 앞으로 오도록 갱신
+
+            let currentUnpaidTotal = 0;
+            Object.keys(targetTable.menus).forEach(m => {
+                currentUnpaidTotal += findPrice(m) * targetTable.menus[m];
+            });
+            targetTable.price = currentUnpaidTotal;
+
+            // 3. 주방 테이블 체크 박스 이력 제거 (새로운 조리 건이 들어왔으므로 초기화)
+            if(!db.checkedItems) db.checkedItems = {};
+            db.checkedItems[selectedTable] = {};
+
+            // 4. 서버로 송출 및 로컬 청소
+            if(socket && socket.connected) {
+                socket.emit('newOrder', db);
+                alert(`#${selectedTable}번 테이블 추가 주문이 주방으로 안전하게 전송되었습니다!`);
+                staffCart = {};
+                selectedTable = null;
+                renderTableGrid();
+                updateCartUI();
+            } else {
+                alert("⚠️ 서버 연결이 끊겨 주문 전송에 실패했습니다. ngrok 주소를 다시 확인해 주세요.");
+            }
+        }
+    </script>
+</body>
+</html>

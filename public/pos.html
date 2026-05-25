@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Festival POS Pro V12.6 (Table Total Price Added)</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #00d2d3;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --danger: #ff4757;
+            --success: #10ac84;
+            --warning: #fbc531;
+            --reserve: #9b59b6;
+        }
+
+        * { 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent; 
+        }
+        
+        body { 
+            font-family: 'Malgun Gothic', sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            margin: 0; 
+            padding: 10px; 
+            height: 100vh; 
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column; 
+            overscroll-behavior: none !important; 
+            -webkit-font-smoothing: antialiased;
+            transform: translateZ(0); 
+        }
+
+        header { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #334155; margin-bottom: 10px; flex-shrink: 0; }
+        .nav-tabs { display: flex; gap: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .nav-tabs::-webkit-scrollbar { display: none; }
+        
+        .nav-btn { 
+            background: #334155; border: none; color: white; padding: 10px 14px; font-size: 13px; font-weight: bold; border-radius: 10px; cursor: pointer; transition: background 0.15s ease; white-space: nowrap;
+            touch-action: manipulation;
+        }
+        .nav-btn.active { background: var(--accent); color: #000; }
+        #live-clock { font-size: 14px; font-weight: bold; color: var(--accent); white-space: nowrap; margin-left: 5px; }
+
+        .main-content { flex: 1; position: relative; overflow: hidden; }
+        
+        .screen { display: none; width: 100%; height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: none !important; touch-action: pan-y; }
+        .screen.active { display: block; }
+
+        .table-grid { 
+            display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(5, 1fr); gap: 10px; height: calc(100vh - 75px); padding-bottom: 10px; 
+        }
+        
+        .table-card { 
+            background: var(--card-bg); border: 2px solid #334155; border-radius: 14px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; transition: border-color 0.15s ease, transform 0.1s ease; position: relative; 
+            touch-action: manipulation;
+        }
+        .table-card:active { transform: scale(0.98); } 
+        .table-card.active { border-color: var(--accent); }
+        .table-card.paid { border-color: var(--warning); opacity: 0.95; }
+        .table-card.reserved { border-color: var(--reserve); background: #2c1a3a; }
+
+        .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .table-num { font-size: 18px; font-weight: bold; color: #fff; }
+        .badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: bold; }
+        .badge.empty { background: #475569; }
+        .badge.cooking { background: var(--danger); }
+        .badge.served { background: var(--success); }
+        .badge.paid-badge { background: var(--warning); color: #000; }
+        .badge.reserve-badge { background: var(--reserve); color: #fff; }
+
+        .timer { font-size: 11px; color: var(--warning); margin-bottom: 4px; font-weight: bold; }
+        .order-preview { font-size: 12px; color: var(--text-sub); line-height: 1.3; flex: 1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+        .price-footer { border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px; }
+        .price-line { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px; }
+        .price-line strong { color: var(--accent); }
+
+        .order-board { display: flex; gap: 12px; overflow-x: auto; padding: 5px; height: calc(100vh - 80px); -webkit-overflow-scrolling: touch; touch-action: pan-x; }
+        
+        .order-ticket { 
+            flex: 0 0 250px; background: #1e293b; border-top: 5px solid var(--danger); border-radius: 12px; padding: 15px; display: flex; flex-direction: column; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.1s ease; position: relative;
+        }
+
+        .ticket-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #475569; padding-bottom: 8px; margin-bottom: 10px; }
+        .ticket-timer { font-size: 13px; font-weight: bold; color: var(--warning); background: #0f172a; padding: 3px 8px; border-radius: 6px; border: 1px solid #334155; }
+        .ticket-body { flex: 1; overflow-y: auto; font-size: 14px; line-height: 1.6; touch-action: pan-y; }
+        
+        .ticket-item { 
+            display: flex; justify-content: space-between; margin-bottom: 6px; padding: 12px 10px; background: #0f172a; border-radius: 6px; user-select: none; 
+            cursor: pointer; transition: all 0.1s ease;
+        }
+        .ticket-item * { pointer-events: none; } 
+        .ticket-item:active { background: #334155; }
+        .ticket-item.checked { opacity: 0.25; text-decoration: line-through; background: #1e293b; border-left: 4px solid var(--success); }
+
+        .ticket-footer { text-align: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid #334155; font-size: 12px; color: var(--text-sub); }
+        .complete-action-btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; background: linear-gradient(135deg, var(--success), #0c8062); color: white; font-size: 14px; cursor: pointer; animation: pulse 1.5s infinite; touch-action: manipulation; }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.97); }
+            100% { transform: scale(1); }
+        }
+
+        .history-container { max-width: 100%; padding: 5px 5px 80px 5px; height: 100%; overflow-y: auto !important; -webkit-overflow-scrolling: touch !important; touch-action: pan-y !important; }
+        .timeline-card { background: var(--card-bg); border-radius: 12px; padding: 14px; margin-bottom: 12px; border-left: 5px solid var(--accent); display: flex; flex-direction: column; gap: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .timeline-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 6px; font-size: 13px; color: var(--text-sub); }
+        .timeline-body { font-size: 14px; color: #fff; line-height: 1.5; white-space: pre-line; padding: 4px 0; font-weight: 500; }
+        .timeline-footer { text-align: right; font-size: 14px; font-weight: bold; color: var(--accent); border-top: 1px dashed #334155; padding-top: 6px; margin-top: 2px; }
+
+        .sales-container { max-width: 100%; padding: 5px; touch-action: pan-y; }
+        .total-card { background: linear-gradient(135deg, var(--accent), #0097a7); padding: 20px; border-radius: 16px; text-align: center; color: #000; margin-bottom: 15px; }
+        .total-card h2 { font-size: 36px; margin: 5px 0 0 0; }
+        .list-section { background: var(--card-bg); padding: 15px; border-radius: 16px; margin-bottom: 15px;}
+        .list-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #334155; font-size: 14px; align-items: center;}
+
+        .setting-box { background: var(--card-bg); border-radius: 16px; padding: 15px; margin-bottom: 15px; border: 1px solid #334155; }
+        .history-card { background: #0f172a; padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 5px solid var(--accent); }
+
+        .overlay { 
+            display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(3px); justify-content: center; align-items: center; z-index: 999;
+            touch-action: none; 
+        }
+        .modal { 
+            background: var(--card-bg); width: 98%; height: 94vh; max-width: 840px; border-radius: 20px; padding: 15px; display: flex; flex-direction: column; gap: 12px; border: 1px solid #475569; 
+            touch-action: none;
+        }
+        .modal-body { display: flex; gap: 12px; flex: 1; min-height: 0; overflow: hidden; }
+        .order-sheet { flex: 4; background: #0f172a; border-radius: 14px; padding: 12px; display: flex; flex-direction: column; min-height: 0; }
+        .menu-portal { flex: 6; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+
+        .category-tabs { display: flex; gap: 6px; flex-shrink: 0; }
+        .cat-btn { flex: 1; padding: 10px; background: #334155; border: none; color: #fff; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer; touch-action: manipulation; }
+        .cat-btn.active { background: var(--accent); color: #000; }
+
+        .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; overflow-y: auto; flex: 1; touch-action: pan-y !important; -webkit-overflow-scrolling: touch; }
+        .menu-item-btn { background: #334155; border: none; border-radius: 12px; padding: 12px; color: #fff; text-align: left; cursor: pointer; position: relative; touch-action: manipulation; }
+        .menu-item-btn:active { transform: scale(0.97); }
+        .menu-item-btn div { font-size: 14px; font-weight: bold; }
+        .menu-item-btn .p { color: var(--accent); font-size: 12px; margin-top: 3px; }
+        
+        .menu-item-btn.soldout { opacity: 0.35; pointer-events: none; background: #1e293b; border: 1px dashed var(--danger); }
+        .menu-item-btn.soldout::after { content: '품절'; position: absolute; top: 8px; right: 8px; background: var(--danger); color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+
+        .cart-row { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 10px; border-radius: 8px; margin-bottom: 6px; flex-shrink: 0; }
+        .cart-row.served-item { opacity: 0.4; background: #0f172a; border: 1px dashed #475569; }
+        .cart-item-name { font-size: 14px; font-weight: bold; color: #fff; }
+        .cart-row.served-item .cart-item-name { text-decoration: line-through; color: #94a3b8; }
+        
+        .cart-qty-ctrl { display: flex; align-items: center; gap: 8px; }
+        .qty-btn { background: #475569; border: none; color: white; width: 32px; height: 32px; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; touch-action: manipulation; }
+        .qty-btn:active { background: var(--accent); color: #000; }
+        .cart-qty-num { font-size: 15px; font-weight: bold; width: 22px; text-align: center; }
+
+        #modal-cart-items { flex: 1; overflow-y: auto; min-height: 0; touch-action: pan-y !important; -webkit-overflow-scrolling: touch; }
+
+        /* 💰 모달 하단 금액 알림란 인라인 정렬 최적화 */
+        .cart-total-summary-line { 
+            border-top: 1px solid #334155; 
+            padding-top: 10px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            font-size: 13px; 
+            font-weight: bold; 
+            flex-shrink: 0; 
+        }
+
+        .footer-btns { display: flex; gap: 8px; flex-shrink: 0; }
+        .f-btn { flex: 1; padding: 14px; border-radius: 12px; border: none; font-weight: bold; font-size: 14px; cursor: pointer; touch-action: manipulation; }
+        .f-btn:active { filter: brightness(0.85); }
+        .f-btn.save { background: var(--success); color: white; }
+        .f-btn.serve { background: #2e86de; color: white; }
+        .f-btn.clear { background: var(--danger); color: white; }
+        .f-btn.reserve-btn { background: var(--reserve); color: white; }
+
+        .toggle-soldout-btn { padding: 6px 12px; border-radius: 8px; border: none; font-weight: bold; font-size: 12px; cursor: pointer; touch-action: manipulation;}
+        .toggle-soldout-btn.on { background: var(--success); color: white; }
+        .toggle-soldout-btn.off { background: var(--danger); color: white; }
+
+        #setting-menu-list { touch-action: pan-y !important; -webkit-overflow-scrolling: touch; }
+
+        .away-timer-wrapper { display: flex; align-items: center; gap: 8px; background: #0f172a; padding: 4px 10px; border-radius: 10px; border: 1px solid #334155; margin-left: auto; margin-right: 15px; }
+        .away-timer-label { font-size:11px; color:var(--text-sub); font-weight:bold; transition: color 0.2s ease; }
+        .away-timer-label.timeout { color: var(--danger) !important; } 
+        .away-timer-clock { font-family: monospace; font-size: 16px; font-weight: bold; color: var(--warning); min-width: 48px; text-align: center; display: flex; align-items: center; gap: 4px; }
+        .away-timer-clock.timeout { color: var(--danger); animation: blinker 1s linear infinite; }
+        .away-status-sub { font-size: 10px; color: #ff9f43; font-weight: bold; background: #2c1d11; padding: 1px 4px; border-radius: 4px; white-space: nowrap; } 
+        .away-btn-group { display: flex; gap: 4px; }
+        .away-ctrl-btn { background: #334155; border: none; color: white; width: 26px; height: 26px; border-radius: 5px; font-size: 11px; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+        .away-ctrl-btn:active { background: var(--accent); color: #000; }
+        
+        @keyframes blinker {
+            50% { opacity: 0; }
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="nav-tabs">
+            <button class="nav-btn active" id="btn-tables" onclick="showScreen('tables')">🪑 테이블</button>
+            <button class="nav-btn" id="btn-orders" onclick="showScreen('orders')">🔔 주문 현황</button>
+            <button class="nav-btn" id="btn-logs" onclick="showScreen('logs')">📜 주문 내역</button>
+            <button class="nav-btn" id="btn-sales" onclick="showScreen('sales')">📊 매출</button>
+            <button class="nav-btn" id="btn-settings" onclick="showScreen('settings')">⚙️ 설정</button>
+        </div>
+        <div id="live-clock">00:00:00</div>
+    </header>
+
+    <main class="main-content">
+        <div class="screen active" id="screen-tables">
+            <div class="table-grid" id="table-grid"></div>
+        </div>
+
+        <div class="screen" id="screen-orders">
+            <div class="order-board" id="order-board"></div>
+        </div>
+
+        <div class="screen" id="screen-logs">
+            <div class="history-container" id="timeline-log-list"></div>
+        </div>
+
+        <div class="screen" id="screen-sales">
+            <div class="sales-container">
+                <div class="total-card">
+                    <span>오늘의 누적 매출 (실시간 정산 완료분)</span>
+                    <h2 id="today-total-amt">0원</h2>
+                </div>
+                <div class="list-section">
+                    <h3 style="margin-top:0; color:var(--accent); font-size:16px;">🍗 품목별 판매 현황</h3>
+                    <div id="item-stats-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="screen" id="screen-settings">
+            <div class="sales-container">
+                <div class="setting-box" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="margin:0; color:var(--accent); font-size:16px;">🍔 실시간 메뉴 관리</h3>
+                        <p style="color:var(--text-sub); font-size: 11px; margin: 4px 0 0 0;">카테고리별 품절 상태를 등록 및 해제합니다.</p>
+                    </div>
+                    <button class="f-btn serve" style="flex:none; padding:10px 20px; font-size:13px;" onclick="openMenuSettingsModal()">메뉴 관리 열기</button>
+                </div>
+
+                <div class="setting-box">
+                    <h3 style="margin-top:0; color:var(--accent); font-size:16px;">💾 정산 및 마감</h3>
+                    <p style="color:var(--text-sub); font-size: 12px; margin-bottom:10px;">장사를 종료할 때 매출을 기록하고 테이블을 초기화합니다.</p>
+                    <div style="display: flex; gap:8px;">
+                        <button class="f-btn save" style="padding:10px; font-size:13px;" onclick="archiveDay()">매출 일차별 저장</button>
+                        <button class="f-btn clear" id="btn-reset-today" style="padding:10px; font-size:13px;" onclick="resetTodayLive()">테이블 초기화</button>
+                    </div>
+                </div>
+                <div class="setting-box">
+                    <h3 style="margin-top:0; color:var(--accent); font-size:16px;">📜 매출 아카이브</h3>
+                    <div id="archive-list"></div>
+                    <button class="f-btn clear" id="btn-factory-reset" style="width:100%; margin-top:15px; font-size:11px; padding:8px;" onclick="factoryReset()">공장 초기화 (전체 삭제)</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="overlay" id="modal-overlay">
+        <div class="modal">
+            <div style="display: flex; justify-content: flex-start; align-items: center; flex-shrink: 0; width: 100%;">
+                <h3 id="modal-table-name" style="margin:0; font-size:18px; white-space: nowrap;">0번 테이블</h3>
+                
+                <div class="away-timer-wrapper">
+                    <span class="away-timer-label" id="away-label-display"><i class="fa-solid fa-person-walking-arrow-right"></i> 자리비움</span>
+                    <div class="away-timer-clock" id="away-clock-display">20:00</div>
+                    <div class="away-btn-group">
+                        <button class="away-ctrl-btn" onclick="controlAwayTimer('start')" title="재생"><i class="fa-solid fa-play"></i></button>
+                        <button class="away-ctrl-btn" onclick="controlAwayTimer('pause')" title="일시정지"><i class="fa-solid fa-pause"></i></button>
+                        <button class="away-ctrl-btn" onclick="controlAwayTimer('reset')" title="초기화"><i class="fa-solid fa-arrow-rotate-left"></i></button>
+                    </div>
+                </div>
+
+                <button onclick="closeModal()" style="background:none; border:none; color:white; font-size:26px; cursor:pointer; padding:5px 10px; margin-left: auto;">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="order-sheet">
+                    <h4 style="font-size:14px; margin:0 0 10px 0; color:var(--warning); flex-shrink:0;">🛒 주문 내역</h4>
+                    <div id="modal-cart-items"></div>
+                    
+                    <div class="cart-total-summary-line">
+                        <div style="color:var(--text-sub);">테이블 단가: <span id="modal-table-accumulated" style="color:#fff;">0</span>원</div>
+                        <div style="color:var(--accent); font-size:15px;">신규 추가액: <span id="modal-cart-total">0</span>원</div>
+                    </div>
+                </div>
+                <div class="menu-portal">
+                    <div class="category-tabs">
+                        <button class="cat-btn active" id="tab-main" onclick="changeCategory('main')">메인</button>
+                        <button class="cat-btn" id="tab-side" onclick="changeCategory('side')">사이드</button>
+                        <button class="cat-btn" id="tab-drink" onclick="changeCategory('drink')">음료</button>
+                    </div>
+                    <div class="menu-grid" id="menu-grid"></div>
+                </div>
+            </div>
+            <div class="footer-btns">
+                <button class="f-btn reserve-btn" id="btn-reserve-toggle" onclick="toggleReservation()">예약석 지정</button>
+                <button class="f-btn clear" id="btn-clear-table" onclick="clearTable()">退실 (테이블 비우기)</button>
+                <button class="f-btn save" id="btn-save-order" onclick="saveOrder()">주문 넣기 (주방 전송)</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="menu-settings-overlay">
+        <div class="modal" style="max-width: 600px; height: 85vh;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom:1px solid #334155; padding-bottom:8px; flex-shrink:0;">
+                <h3 style="margin:0; font-size:18px; color:var(--accent);"><i class="fa-solid fa-ban"></i> 메뉴 품절 설정</h3>
+                <button onclick="closeMenuSettingsModal()" style="background:none; border:none; color:white; font-size:26px; cursor:pointer; padding:5px 10px;">&times;</button>
+            </div>
+            <div class="category-tabs" style="margin-top:5px; flex-shrink:0;">
+                <button class="cat-btn active" id="setting-tab-main" onclick="changeSettingCategory('main')">메인메뉴</button>
+                <button class="cat-btn" id="setting-tab-side" onclick="changeSettingCategory('side')">사이드메뉴</button>
+                <button class="cat-btn" id="setting-tab-drink" onclick="changeSettingCategory('drink')">주류/음료</button>
+            </div>
+            <div style="flex:1; overflow-y:auto; padding-right:4px;" id="setting-menu-list"></div>
+            <button class="f-btn save" style="width:100%; padding:12px; flex-shrink:0;" onclick="closeMenuSettingsModal()">설정 완료 후 닫기</button>
+        </div>
+    </div>
+
+    <script>
+        const SERVER_URL = "https://uninvited-shrimp-capture.ngrok-free.dev";
+        let socket;
+
+        const MENUS = {
+            main: { "풀드포크 플래터": 25000, "콘 치즈 누룽지 닭전": 20000, "파닭구이": 20000, "매콤순대볶음": 18000 },
+            side: { "해물 나가사끼": 15000, "매콤 닭발 튀김": 14000, "계란말이": 12000, "묵사발": 12000, "불닭냉면": 8000 },
+            drink: { "무등산 슬러쉬": 3000, "콜라 슬러쉬": 3000, "매화수": 5000, "테라": 5000, "음료": 2000, "생수": 1000 }
+        };
+
+        let db = JSON.parse(localStorage.getItem('pos_v7_db')) || {};
+        if(!db.tables) db.tables = {};
+        if(db.totalSales === undefined) db.totalSales = 0;
+        if(!db.itemSales) db.itemSales = {};
+        if(!db.history) db.history = [];
+        if(!db.soldOut) db.soldOut = {};
+        if(!db.checkedItems) db.checkedItems = {};
+        if(!db.orderHistory) db.orderHistory = [];
+        if(!db.awayTimers) db.awayTimers = {};
+
+        let activeTable = null;
+        let cart = {}; 
+        let currentCat = 'main';
+        let currentSettingCat = 'main';
+        let localOrderQueue = [];
+
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('live-clock').innerText = now.toTimeString().split(' ')[0];
+            
+            Object.keys(db.awayTimers).forEach(id => {
+                const timerState = db.awayTimers[id];
+                if (timerState && timerState.running && timerState.timeLeft > 0) {
+                    timerState.timeLeft--;
+                }
+            });
+
+            if(document.getElementById('screen-orders').classList.contains('active')) {
+                renderOrdersSilently();
+            }
+            if(activeTable !== null) {
+                drawAwayTimerUI();
+            }
+        }, 1000);
+
+        try {
+            socket = io(SERVER_URL, {
+                transports: ['websocket', 'polling'],
+                reconnectionAttempts: 5,
+                timeout: 10000
+            });
+
+            socket.on('connect', () => {
+                console.log("✅ 포스 시스템 메인 통신망 동기화 완료");
+            });
+
+            socket.on('orderUpdate', (updatedDbData) => {
+                if(updatedDbData && updatedDbData.tables) {
+                    if(!updatedDbData.checkedItems) updatedDbData.checkedItems = {};
+                    if(!updatedDbData.orderHistory) updatedDbData.orderHistory = [];
+                    if(!updatedDbData.awayTimers) updatedDbData.awayTimers = {};
+                    db = updatedDbData;
+                    localStorage.setItem('pos_v7_db', JSON.stringify(db)); 
+                    refreshActiveScreen();
+                    if (activeTable !== null) {
+                        updateModalUI();
+                    }
+                }
+            });
+        } catch (e) {
+            console.log("⚠️ 오프라인 모드", e);
+        }
+
+        document.addEventListener('touchmove', function(e) {
+            if (e.target.closest('.menu-grid') || e.target.closest('#modal-cart-items') || e.target.closest('#setting-menu-list') || e.target.closest('.order-board') || e.target.closest('#timeline-log-list') || e.target.closest('.history-container') || e.target.closest('.screen')) {
+                return; 
+            }
+            e.preventDefault(); 
+        }, { passive: false });
+
+        document.getElementById('order-board').addEventListener('click', function(e) {
+            const item = e.target.closest('.ticket-item');
+            if (item && item.getAttribute('data-action') === 'toggle-check') {
+                const tableId = item.getAttribute('data-table-id');
+                const menuName = item.getAttribute('data-menu-name');
+                toggleMultiItemCheck(e, tableId, menuName);
+            }
+        });
+
+        function sync() { 
+            localStorage.setItem('pos_v7_db', JSON.stringify(db)); 
+            if(socket && socket.connected) {
+                try { socket.emit('newOrder', db); } catch (error) { handleOfflineSyncBackup(); }
+            } else { handleOfflineSyncBackup(); }
+        }
+
+        function handleOfflineSyncBackup() {
+            const deepCopiedDb = JSON.parse(JSON.stringify(db));
+            localOrderQueue.push(deepCopiedDb);
+        }
+
+        function startSyncInterval() {
+            setInterval(() => {
+                if (localOrderQueue.length === 0) return;
+                if (socket && socket.connected) {
+                    while (localOrderQueue.length > 0) {
+                        const nextDbData = localOrderQueue[0];
+                        try {
+                            socket.emit('newOrder', nextDbData);
+                            localOrderQueue.shift(); 
+                        } catch (err) { break; }
+                    }
+                }
+            }, 10000);
+        }
+
+        function refreshActiveScreen() {
+            if(document.getElementById('screen-tables').classList.contains('active')) renderTables();
+            if(document.getElementById('screen-orders').classList.contains('active')) renderOrders();
+            if(document.getElementById('screen-logs').classList.contains('active')) renderOrderLogs();
+            if(document.getElementById('screen-sales').classList.contains('active')) renderSales();
+            if(document.getElementById('screen-settings').classList.contains('active')) renderSettings();
+        }
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('screen-' + id).classList.add('active');
+            document.getElementById('btn-' + id).classList.add('active');
+            refreshActiveScreen();
+        }
+
+        function calculateTableTime(ts) {
+            if(!ts) return "0시간 0분";
+            const diff = Math.floor((Date.now() - ts) / 60000);
+            return `${Math.floor(diff/60)}시간 ${diff%60}분`;
+        }
+
+        function controlAwayTimer(action) {
+            if(activeTable === null) return;
+            if(!db.awayTimers[activeTable]) {
+                db.awayTimers[activeTable] = { timeLeft: 1200, running: false }; 
+            }
+            const state = db.awayTimers[activeTable];
+            if(action === 'start') { state.running = true; } 
+            else if(action === 'pause') { state.running = false; } 
+            else if(action === 'reset') { state.running = false; state.timeLeft = 1200; }
+            sync();
+            drawAwayTimerUI();
+        }
+
+        function drawAwayTimerUI() {
+            if(activeTable === null) return;
+            const clockNode = document.getElementById('away-clock-display');
+            const labelNode = document.getElementById('away-label-display');
+            if(!clockNode || !labelNode) return;
+
+            const state = db.awayTimers[activeTable] || { timeLeft: 1200, running: false };
+            const min = Math.floor(state.timeLeft / 60);
+            const sec = state.timeLeft % 60;
+            
+            let clockText = `${min < 10 ? '0' + min : min}:${sec < 10 ? '0' + sec : sec}`;
+            if (!state.running && state.timeLeft > 0 && state.timeLeft < 1200) {
+                clockText += ` <span class="away-status-sub">[일시정지]</span>`;
+            }
+            clockNode.innerHTML = clockText;
+            
+            if(state.timeLeft <= 0) {
+                clockNode.classList.add('timeout');
+                labelNode.classList.add('timeout');
+                clockNode.innerText = "시간초과";
+            } else {
+                clockNode.classList.remove('timeout');
+                labelNode.classList.remove('timeout');
+            }
+        }
+
+        function calculateOrderTime(ts) {
+            if(!ts) return "0분 0초";
+            const diffMs = Date.now() - ts;
+            const totalSecs = Math.floor(diffMs / 1000);
+            return `${Math.floor(totalSecs / 60)}분 ${totalSecs % 60}초`;
+        }
+
+        function findPrice(name) {
+            for(let cat in MENUS) {
+                if(MENUS[cat][name]) return MENUS[cat][name];
+            }
+            return 0;
+        }
+
+        function getMobileSafeTime() {
+            const now = new Date();
+            const pad = (n) => n < 10 ? '0' + n : n;
+            return `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+        }
+
+        function renderTables() {
+            const container = document.getElementById('table-grid');
+            if(!container) return;
+            container.innerHTML = '';
+            const layoutMatrix = [[15, 10, 5], [14, 9, 4], [13, 8, 3], [12, 7, 2], [11, 6, 1]];
+            const renderOrder = [];
+            for(let row=0; row<5; row++) {
+                for(let col=0; col<3; col++) { renderOrder.push(layoutMatrix[row][col]); }
+            }
+
+            renderOrder.forEach(i => {
+                const t = db.tables[i];
+                const awayState = db.awayTimers[i];
+                let awayBadgeHtml = "";
+                
+                if(awayState && awayState.timeLeft < 1200) {
+                    const am = Math.floor(awayState.timeLeft / 60);
+                    const as = awayState.timeLeft % 60;
+                    let pauseText = (!awayState.running && awayState.timeLeft > 0) ? " (일시정지)" : "";
+                    if(awayState.timeLeft <= 0) {
+                        awayBadgeHtml = `<span style="font-size:10px; color:var(--danger); font-weight:bold; margin-left:5px;">🕒 비움(초과)</span>`;
+                    } else {
+                        awayBadgeHtml = `<span style="font-size:10px; color:var(--warning); margin-left:5px;">🕒 비움(${am}:${as < 10 ? '0'+as : as}${pauseText})</span>`;
+                    }
+                }
+
+                if(!t || t.status === 'empty') {
+                    container.innerHTML += `<div class="table-card empty" onclick="openModal(${i})">
+                        <div class="table-header"><span class="table-num">#${i}</span><span class="badge empty">Empty</span></div>
+                        <div class="order-preview">주문 대기 ${awayBadgeHtml}</div>
+                    </div>`;
+                } else if(t.status === 'reserved') {
+                    container.innerHTML += `<div class="table-card reserved" onclick="openModal(${i})">
+                        <div class="table-header"><span class="table-num">#${i}</span><span class="badge reserve-badge">예약석</span></div>
+                        <div class="order-preview" style="color:var(--reserve); font-weight:bold;">⚠️ 예약 손님 대기 중</div>
+                    </div>`;
+                } else {
+                    const novelItems = t.menus || {};
+                    const servedItems = t.paidMenus || {};
+                    let previewArr = [];
+                    Object.keys(novelItems).forEach(k => previewArr.push(`🔔 ${k} x${novelItems[k]}`));
+                    Object.keys(servedItems).forEach(k => previewArr.push(`✓ ${k} x${servedItems[k]}`));
+                    
+                    const preview = previewArr.join(', ') || "주문 내역 없음";
+                    const badgeTxt = t.status === 'cooking' ? '조리중 🔔' : '서빙완료 ✓';
+                    const badgeClass = t.status === 'cooking' ? 'cooking' : 'served';
+                    const timerText = calculateTableTime(t.timestamp);
+
+                    let unservedPrice = 0;
+                    Object.keys(novelItems).forEach(k => { unservedPrice += findPrice(k) * novelItems[k]; });
+                    let totalServedPrice = 0;
+                    Object.keys(servedItems).forEach(k => { totalServedPrice += findPrice(k) * servedItems[k]; });
+
+                    container.innerHTML += `<div class="table-card active" onclick="openModal(${i})">
+                        <div class="table-header"><span class="table-num">#${i}</span><span class="badge ${badgeClass}">${badgeTxt}</span></div>
+                        <div class="timer">${timerText} ${awayBadgeHtml}</div>
+                        <div class="order-preview">${preview}</div>
+                        <div class="price-footer">
+                            <div class="price-line">조리중 금액: <span>${unservedPrice.toLocaleString()}원</span></div>
+                            <div class="price-line">서빙완료 누적: <strong>${totalServedPrice.toLocaleString()}원</strong></div>
+                        </div>
+                    </div>`;
+                }
+            });
+        }
+
+        function renderOrders() {
+            const board = document.getElementById('order-board');
+            if (!board) return;
+
+            const activeOrders = Object.keys(db.tables)
+                .filter(id => db.tables[id] && db.tables[id].status === 'cooking' && Object.keys(db.tables[id].menus || {}).length > 0)
+                .sort((a, b) => (db.tables[a].timestamp || 0) - (db.tables[b].timestamp || 0));
+
+            if (activeOrders.length === 0) {
+                board.innerHTML = `<div style="width:100%; text-align:center; padding-top:100px; color:var(--text-sub);">조리 대기 주문이 없습니다.</div>`;
+                return;
+            }
+
+            let htmlBuffer = "";
+            activeOrders.forEach(id => {
+                const t = db.tables[id];
+                if (!db.checkedItems[id]) db.checkedItems[id] = {};
+
+                let uniqueMenuTypesCount = 0;
+                let checkedMenuTypesCount = 0;
+                let itemsHtml = '';
+
+                Object.keys(t.menus).forEach(name => {
+                    const qty = t.menus[name];
+                    if (qty > 0) {
+                        uniqueMenuTypesCount++;
+                        const isChecked = db.checkedItems[id][name] === true;
+                        if (isChecked) checkedMenuTypesCount++;
+                        const checkedClass = isChecked ? 'checked' : '';
+                        const iconHtml = isChecked ? '<i class="fa-solid fa-circle-check" style="color:var(--success);"></i>' : '<i class="fa-regular fa-circle" style="color:var(--text-sub);"></i>';
+                        const touchAttrs = `data-action="toggle-check" data-table-id="${id}" data-menu-name="${name}"`;
+
+                        itemsHtml += `
+                            <div class="ticket-item ${checkedClass}" ${touchAttrs}>
+                                <span>${iconHtml} ${name}</span>
+                                <strong style="font-size:16px; color:var(--accent);">x${qty}</strong>
+                            </div>`;
+                    }
+                });
+
+                if (uniqueMenuTypesCount > 0) {
+                    const isAllChecked = uniqueMenuTypesCount === checkedMenuTypesCount;
+                    let footerHtml = isAllChecked ? `
+                            <div class="ticket-footer" style="border:none; padding-top:0;">
+                                <button class="complete-action-btn" onclick="completeCookingFromBoard(${id})">🚀 전체 서빙 완료 (매출 및 내역 반영)</button>
+                            </div>` : `
+                            <div class="ticket-footer">
+                                각 메뉴를 터치하여 확인해 주세요.<br>
+                                <span style="color:var(--warning)">(${checkedMenuTypesCount}/${uniqueMenuTypesCount} 체크됨)</span>
+                            </div>`;
+
+                    htmlBuffer += `
+                        <div class="order-ticket">
+                            <div class="ticket-header">
+                                <div><span style="font-size:20px; font-weight:bold; color:var(--accent);">#${id}번</span></div>
+                                <div class="ticket-timer" id="timer-display-${id}"><i class="fa-regular fa-clock"></i> ${calculateOrderTime(t.timestamp)}</div>
+                            </div>
+                            <div class="ticket-body">${itemsHtml}</div>
+                            ${footerHtml}
+                        </div>`;
+                }
+            });
+            board.innerHTML = htmlBuffer || `<div style="width:100%; text-align:center; padding-top:100px; color:var(--text-sub);">조리 대기 주문이 없습니다.</div>`;
+        }
+
+        function renderOrdersSilently() {
+            Object.keys(db.tables).forEach(id => {
+                const t = db.tables[id];
+                const display = document.getElementById(`timer-display-${id}`);
+                if (display && t && t.status === 'cooking') {
+                    display.innerHTML = `<i class="fa-regular fa-clock"></i> ${calculateOrderTime(t.timestamp)}`;
+                }
+            });
+        }
+
+        function renderOrderLogs() {
+            const listContainer = document.getElementById('timeline-log-list');
+            if(!listContainer) return;
+            listContainer.innerHTML = '';
+
+            if(!db.orderHistory || db.orderHistory.length === 0) {
+                listContainer.innerHTML = '<div style="color:var(--text-sub); text-align:center; padding-top:80px; font-size:14px; line-height:1.6;"><i class="fa-solid fa-receipt" style="font-size:26px; color:var(--text-sub); margin-bottom:12px; display:block;"></i>완료된 주문 기록이 비어있습니다.</div>';
+                return;
+            }
+
+            const reversedLogs = [...db.orderHistory].reverse();
+            let htmlBuffer = "";
+            reversedLogs.forEach(log => {
+                htmlBuffer += `
+                    <div class="timeline-card">
+                        <div class="timeline-header">
+                            <span style="font-weight:bold; color:#fff; font-size:15px;"><i class="fa-solid fa-receipt" style="color:var(--accent);"></i> #${log.tableId}번 테이블</span>
+                            <span><i class="fa-solid fa-bell-concierge" style="color:var(--success);"></i> ${log.time} 완료</span>
+                        </div>
+                        <div class="timeline-body">${log.items}</div>
+                        <div class="timeline-footer">서빙 완료 금액: ${Number(log.cost).toLocaleString()}원</div>
+                    </div>`;
+            });
+            listContainer.innerHTML = htmlBuffer;
+        }
+
+        function toggleMultiItemCheck(event, tableId, menuName) {
+            event.stopPropagation();
+            if (!db.checkedItems[tableId]) db.checkedItems[tableId] = {};
+            db.checkedItems[tableId][menuName] = !db.checkedItems[tableId][menuName];
+            sync();
+            renderOrders();
+        }
+
+        function completeCookingFromBoard(id) {
+            const t = db.tables[id];
+            if(!t) return;
+            if(!t.paidMenus) t.paidMenus = {};
+            if(!t.paidPrice) t.paidPrice = 0;
+
+            let logItemsArr = [];
+            let logCostTotal = 0;
+
+            Object.keys(t.menus).forEach(k => {
+                const qty = t.menus[k];
+                const price = findPrice(k) * qty;
+                t.paidMenus[k] = (t.paidMenus[k] || 0) + qty;
+                t.paidPrice += price;
+                db.totalSales += price;
+                db.itemSales[k] = (db.itemSales[k] || 0) + qty;
+                logItemsArr.push(`- ${k} x${qty}`);
+                logCostTotal += price;
+            });
+
+            if(logItemsArr.length > 0) {
+                db.orderHistory.push({
+                    tableId: id,
+                    time: getMobileSafeTime(),
+                    items: logItemsArr.join('\n'),
+                    cost: logCostTotal
+                });
+            }
+            t.menus = {}; t.price = 0; t.status = 'served'; 
+            if(db.checkedItems[id]) delete db.checkedItems[id];
+            sync(); renderOrders();
+        }
+
+        function openModal(id) {
+            activeTable = id;
+            const t = db.tables[id];
+            if (t && t.status === 'reserved') {
+                document.getElementById('modal-table-name').innerText = `#${id} 예약석`;
+            } else {
+                document.getElementById('modal-table-name').innerText = `#${id} 테이블 주문/관리`;
+            }
+            cart = {}; 
+            updateModalUI();
+            drawAwayTimerUI(); 
+            changeCategory(currentCat);
+            document.getElementById('modal-overlay').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').style.display = 'none';
+            activeTable = null; cart = {}; renderTables(); 
+        }
+
+        // 💰 [합계 로직 결합 수정] 테이블 누적 단가 + 신규 추가액 분할 실시간 주입
+        function updateModalUI() {
+            const cartDiv = document.getElementById('modal-cart-items');
+            if(!cartDiv) return;
+            cartDiv.innerHTML = '';
+            
+            const t = db.tables[activeTable];
+            let accumulatedTablePrice = 0; // 조리중 + 이미 나간 금액 누적 변수
+            
+            if(t && t.paidMenus) {
+                Object.keys(t.paidMenus).forEach(name => {
+                    const qty = t.paidMenus[name];
+                    if(qty > 0) {
+                        accumulatedTablePrice += findPrice(name) * qty;
+                        cartDiv.innerHTML += `
+                            <div class="cart-row served-item">
+                                <span class="cart-item-name"><i class="fa-solid fa-circle-check"></i> ${name} x${qty}</span>
+                                <span style="font-size:12px; color:var(--text-sub);">서빙완료</span>
+                            </div>`;
+                    }
+                });
+            }
+
+            if(t && t.menus) {
+                Object.keys(t.menus).forEach(name => {
+                    const qty = t.menus[name];
+                    if(qty > 0) {
+                        accumulatedTablePrice += findPrice(name) * qty;
+                        cartDiv.innerHTML += `
+                            <div class="cart-row" style="border-left:4px solid var(--danger);">
+                                <span class="cart-item-name">🔥 ${name} x${qty}</span>
+                                <span style="font-size:12px; color:var(--danger); font-weight:bold;">조리중</span>
+                            </div>`;
+                    }
+                });
+            }
+
+            let newTotal = 0;
+            Object.keys(cart).forEach(name => {
+                const qty = cart[name];
+                if(qty > 0) {
+                    newTotal += findPrice(name) * qty;
+                    cartDiv.innerHTML += `
+                        <div class="cart-row" style="border-left:4px solid var(--accent);">
+                            <span class="cart-item-name" style="color:var(--accent);">🆕 ${name}</span>
+                            <div class="cart-qty-ctrl">
+                                <button class="qty-btn" onclick="changeQty('${name}', -1)">-</button>
+                                <span class="cart-qty-num">${qty}</span>
+                                <button class="qty-btn" onclick="changeQty('${name}', 1)">+</button>
+                            </div>
+                        </div>`;
+                }
+            });
+
+            // 화면 표시 동기화 바인딩
+            document.getElementById('modal-table-accumulated').innerText = accumulatedTablePrice.toLocaleString();
+            document.getElementById('modal-cart-total').innerText = newTotal.toLocaleString();
+        }
+
+        function changeQty(name, amount) {
+            if(!cart[name]) cart[name] = 0;
+            cart[name] += amount;
+            if(cart[name] <= 0) delete cart[name];
+            updateModalUI();
+        }
+
+        function addToCart(name) {
+            if(!cart[name]) cart[name] = 0;
+            cart[name] += 1;
+            updateModalUI();
+        }
+
+        function saveOrder() {
+            if(activeTable === null) return;
+            if(Object.keys(cart).length === 0) {
+                alert("선택된 신규 추가 메뉴가 없습니다.");
+                return;
+            }
+
+            let t = db.tables[activeTable];
+            if(!t || t.status === 'empty' || t.status === 'reserved') {
+                t = { status: 'cooking', menus: {}, price: 0, paidMenus: {}, paidPrice: 0, timestamp: Date.now() };
+                db.tables[activeTable] = t;
+            }
+
+            Object.keys(cart).forEach(k => {
+                t.menus[k] = (t.menus[k] || 0) + cart[k];
+            });
+
+            let currentPrice = 0;
+            Object.keys(t.menus).forEach(k => { currentPrice += findPrice(k) * t.menus[k]; });
+            t.price = currentPrice;
+            t.status = 'cooking';
+            t.timestamp = Date.now(); 
+
+            sync(); closeModal(); refreshActiveScreen(); 
+        }
+
+        function clearTable() {
+            if(activeTable === null || !db.tables[activeTable]) return;
+            if(!confirm("손님이 퇴실하셨습니까? 테이블을 초기화하고 비웁니다.")) return;
+            if(db.checkedItems[activeTable]) delete db.checkedItems[activeTable];
+            if(db.awayTimers[activeTable]) delete db.awayTimers[activeTable];
+
+            db.tables[activeTable] = { status: 'empty', menus: {}, price: 0, paidMenus: {}, paidPrice: 0, timestamp: null };
+            sync(); closeModal(); renderTables();
+        }
+
+        function toggleReservation() {
+            if(activeTable === null) return;
+            if(!db.tables[activeTable]) {
+                db.tables[activeTable] = { status: 'empty', menus: {}, price: 0, paidMenus: {}, paidPrice: 0, timestamp: null };
+            }
+            const t = db.tables[activeTable];
+            if(t.status === 'empty') {
+                t.status = 'reserved'; alert("📌 해당 테이블을 예약석으로 지정했습니다.");
+            } else if(t.status === 'reserved') {
+                t.status = 'empty'; alert("🔓 예약석 지정을 해제했습니다.");
+            } else {
+                alert("❌ 이미 이용 중인 테이블은 예약석으로 변경할 수 없습니다.");
+                return;
+            }
+            sync(); closeModal(); renderTables();
+        }
+
+        function renderSales() {
+            document.getElementById('today-total-amt').innerText = (db.totalSales || 0).toLocaleString() + "원";
+            const list = document.getElementById('item-stats-list');
+            if(!list) return;
+            list.innerHTML = '';
+            
+            let hasItems = false;
+            for(let cat in MENUS) {
+                for(let item in MENUS[cat]) {
+                    const qty = db.itemSales[item] || 0;
+                    if(qty > 0) {
+                        hasItems = true;
+                        list.innerHTML += `
+                            <div class="list-item">
+                                <span>${item}</span>
+                                <strong>${qty}개 (+ ${(qty * MENUS[cat][item]).toLocaleString()}원)</strong>
+                            </div>`;
+                    }
+                }
+            }
+            if(!hasItems) list.innerHTML = '<div style="color:var(--text-sub); text-align:center; padding:20px 0;">정산 판매된 품목이 없습니다.</div>';
+        }
+
+        function renderSettings() {
+            const container = document.getElementById('archive-list');
+            if(!container) return;
+            container.innerHTML = '';
+            if(!db.history || db.history.length === 0) {
+                container.innerHTML = '<div style="color:var(--text-sub); font-size:12px; padding:10px 0;">아직 마감 저장된 내역이 없습니다.</div>';
+                return;
+            }
+            db.history.forEach((h, idx) => {
+                container.innerHTML += `
+                    <div class="history-card">
+                        <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:bold; margin-bottom:4px;">
+                            <span style="color:#fff;">${idx+1}일차 마감 기록</span>
+                            <span style="color:var(--accent);">${h.sales.toLocaleString()}원</span>
+                        </div>
+                        <div style="font-size:11px; color:var(--text-sub); line-height:1.4;">${h.date} 정산 완료</div>
+                    </div>`;
+            });
+        }
+
+        function archiveDay() {
+            if(db.totalSales === 0) {
+                alert("오늘 발생한 매출액이 0원이므로 아카이브를 생성할 수 없습니다.");
+                return;
+            }
+            if(!confirm(`현재 누적 매출액 [${db.totalSales.toLocaleString()}원]을 아카이브에 백업하시겠습니까?`)) return;
+            if(!db.history) db.history = [];
+            db.history.push({ date: new Date().toLocaleString(), sales: db.totalSales });
+            alert("🎉 매출이 아카이브에 영구 기록되었습니다.");
+            sync(); refreshActiveScreen();
+        }
+
+        function resetTodayLive() {
+            if(!confirm("⚠️ 매출 및 모든 테이블 상태를 완전히 초기화하시겠습니까? (아카이브 보존)")) return;
+            db.tables = {}; db.totalSales = 0; db.itemSales = {}; db.checkedItems = {}; db.orderHistory = []; db.awayTimers = {};
+            alert("✅ 모든 테이블과 실시간 매출판, 주문 내역, 타이머가 리셋되었습니다.");
+            sync(); refreshActiveScreen();
+        }
+
+        function factoryReset() {
+            if(!confirm("🚨 아카이브 포함 전체 데이터를 영구 삭제하시겠습니까?")) return;
+            localStorage.removeItem('pos_v7_db');
+            db = { tables: {}, totalSales: 0, itemSales: {}, history: [], soldOut: {}, checkedItems: {}, orderHistory: [], awayTimers: {} };
+            alert("💀 시스템 공장 초기화 완료!");
+            sync(); window.location.reload();
+        }
+
+        function openMenuSettingsModal() {
+            document.getElementById('menu-settings-overlay').style.display = 'flex';
+            changeSettingCategory(currentSettingCat);
+        }
+
+        function closeMenuSettingsModal() {
+            document.getElementById('menu-settings-overlay').style.display = 'none';
+            if(activeTable !== null) openModal(activeTable); 
+            else refreshActiveScreen();
+        }
+
+        function changeSettingCategory(cat) {
+            currentSettingCat = cat;
+            document.querySelectorAll('#menu-settings-overlay .cat-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('setting-tab-' + cat).classList.add('active');
+            
+            const listDiv = document.getElementById('setting-menu-list');
+            if(!listDiv) return;
+            listDiv.innerHTML = '';
+            
+            Object.keys(MENUS[cat]).forEach(name => {
+                const isSoldOut = db.soldOut && db.soldOut[name] === true;
+                const btnTxt = isSoldOut ? '품절 상태 (解除하기)' : '판매 중 (품절 처리)';
+                listDiv.innerHTML += `
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:#0f172a; padding:12px; border-radius:8px; margin-bottom:6px;">
+                        <span>${name} <small style="color:var(--accent);">(${MENUS[cat][name].toLocaleString()}원)</small></span>
+                        <button class="toggle-soldout-btn ${isSoldOut ? 'off' : 'on'}" onclick="toggleSoldOutStatus('${name}')">${btnTxt}</button>
+                    </div>`;
+            });
+        }
+
+        function toggleSoldOutStatus(name) {
+            if(!db.soldOut) db.soldOut = {};
+            db.soldOut[name] = !db.soldOut[name];
+            sync(); changeSettingCategory(currentSettingCat);
+        }
+
+        function changeCategory(cat) {
+            currentCat = cat;
+            document.querySelectorAll('.menu-portal .cat-btn').forEach(b => b.classList.remove('active'));
+            const tabBtn = document.getElementById('tab-' + cat);
+            if(tabBtn) tabBtn.classList.add('active');
+            
+            const grid = document.getElementById('menu-grid');
+            if(!grid) return;
+            grid.innerHTML = '';
+            
+            Object.keys(MENUS[cat]).forEach(name => {
+                const price = MENUS[cat][name];
+                const isSold = db.soldOut && db.soldOut[name] === true;
+                grid.innerHTML += `
+                    <button class="menu-item-btn ${isSold ? 'soldout' : ''}" onclick="addToCart('${name}')">
+                        <div>${name}</div>
+                        <div class="p">${price.toLocaleString()}원</div>
+                    </button>`;
+            });
+        }
+
+        window.onload = function() {
+            startSyncInterval(); refreshActiveScreen(); 
+        };
+    </script>
+</body>
+</html>

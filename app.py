@@ -9,6 +9,14 @@ from flask_socketio import SocketIO, emit
 app = Flask(__name__, static_folder='public', static_url_path='')
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+# ngrok 무료 플랜 브라우저 경고창 자동 우회
+# (직원 핸드폰에서 처음 접속할 때 "Visit Site" 클릭 없이 바로 연결)
+@app.after_request
+def add_ngrok_skip_header(response):
+    response.headers['ngrok-skip-browser-warning'] = 'true'
+    return response
+
+
 DB_DIR = os.path.join(os.path.dirname(__file__), 'database')
 DB_PATH = os.path.join(DB_DIR, 'pos.db')
 

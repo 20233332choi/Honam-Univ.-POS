@@ -1,0 +1,997 @@
+/* 주방 태블릿 POS 화면 전용 스타일시트 */
+:root {
+    --bg-color: #0f172a;
+    --card-bg: #1e293b;
+    --accent: #00d2d3;
+    --text-main: #f8fafc;
+    --text-sub: #94a3b8;
+    --danger: #ff4757;
+    --success: #10ac84;
+    --warning: #fbc531;
+    --reserve: #9b59b6;
+}
+
+body {
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transform: translateZ(0);
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    border-bottom: 1px solid #334155;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+}
+
+.nav-tabs {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.nav-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.nav-btn {
+    background: #334155;
+    border: none;
+    color: white;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: bold;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    white-space: nowrap;
+    touch-action: manipulation;
+}
+
+.nav-btn.active {
+    background: var(--accent);
+    color: #000;
+}
+
+#live-clock {
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--accent);
+    white-space: nowrap;
+    margin-left: 5px;
+}
+
+.main-content {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+.screen {
+    display: none;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: none !important;
+    touch-action: pan-y;
+}
+
+.screen.active {
+    display: block;
+}
+
+.table-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    gap: 10px;
+    height: calc(100vh - 75px);
+    padding-bottom: 10px;
+}
+
+.table-card {
+    background: var(--card-bg);
+    border: 2px solid #334155;
+    border-radius: 14px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: border-color 0.15s ease, transform 0.1s ease;
+    position: relative;
+    touch-action: manipulation;
+}
+
+.table-card:active {
+    transform: scale(0.98);
+}
+
+.table-card.active {
+    border-color: var(--accent);
+}
+
+.table-card.paid {
+    border-color: var(--warning);
+    opacity: 0.95;
+}
+
+.table-card.reserved {
+    border-color: var(--reserve);
+    background: #2c1a3a;
+}
+
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.table-num {
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+}
+
+.badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: bold;
+}
+
+.badge.empty {
+    background: #475569;
+}
+
+.badge.cooking {
+    background: var(--danger);
+}
+
+.badge.served {
+    background: var(--success);
+}
+
+.badge.paid-badge {
+    background: var(--warning);
+    color: #000;
+}
+
+.badge.reserve-badge {
+    background: var(--reserve);
+    color: #fff;
+}
+
+.timer {
+    font-size: 11px;
+    color: var(--warning);
+    margin-bottom: 4px;
+    font-weight: bold;
+}
+
+.order-preview {
+    font-size: 12px;
+    color: var(--text-sub);
+    line-height: 1.3;
+    flex: 1;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.price-footer {
+    border-top: 1px solid #334155;
+    margin-top: 4px;
+    padding-top: 4px;
+}
+
+.price-line {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    margin-bottom: 2px;
+}
+
+.price-line strong {
+    color: var(--accent);
+}
+
+.order-board {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding: 5px;
+    height: calc(100vh - 80px);
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+}
+
+.order-ticket {
+    flex: 0 0 250px;
+    background: #1e293b;
+    border-top: 5px solid var(--danger);
+    border-radius: 12px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    transition: transform 0.1s ease;
+    position: relative;
+}
+
+.ticket-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px dashed #475569;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+}
+
+.ticket-timer {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--warning);
+    background: #0f172a;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid #334155;
+}
+
+.ticket-body {
+    flex: 1;
+    overflow-y: auto;
+    font-size: 14px;
+    line-height: 1.6;
+    touch-action: pan-y;
+}
+
+.ticket-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    padding: 12px 10px;
+    background: #0f172a;
+    border-radius: 6px;
+    user-select: none;
+    cursor: pointer;
+    transition: all 0.1s ease;
+}
+
+.ticket-item * {
+    pointer-events: none;
+}
+
+.ticket-item:active {
+    background: #334155;
+}
+
+.ticket-item.checked {
+    opacity: 0.25;
+    text-decoration: line-through;
+    background: #1e293b;
+    border-left: 4px solid var(--success);
+}
+
+.ticket-footer {
+    text-align: center;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid #334155;
+    font-size: 12px;
+    color: var(--text-sub);
+}
+
+.complete-action-btn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    background: linear-gradient(135deg, var(--success), #0c8062);
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.history-container {
+    max-width: 100%;
+    padding: 5px 5px 80px 5px;
+    height: 100%;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
+}
+
+.timeline-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+    border-left: 5px solid var(--accent);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.timeline-card.cancel-card {
+    border-left: 5px solid var(--danger) !important;
+    background: #2b181d !important;
+}
+
+.timeline-card.cancel-card .timeline-footer {
+    color: var(--danger) !important;
+}
+
+.timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #334155;
+    padding-bottom: 6px;
+    font-size: 13px;
+    color: var(--text-sub);
+}
+
+.timeline-body {
+    font-size: 14px;
+    color: #fff;
+    line-height: 1.5;
+    white-space: pre-line;
+    padding: 4px 0;
+    font-weight: 500;
+}
+
+.timeline-footer {
+    text-align: right;
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--accent);
+    border-top: 1px dashed #334155;
+    padding-top: 6px;
+    margin-top: 2px;
+}
+
+.sales-container {
+    max-width: 100%;
+    padding: 5px;
+    touch-action: pan-y;
+}
+
+.total-card {
+    background: linear-gradient(135deg, var(--accent), #0097a7);
+    padding: 20px;
+    border-radius: 16px;
+    text-align: center;
+    color: #000;
+    margin-bottom: 15px;
+}
+
+.total-card h2 {
+    font-size: 36px;
+    margin: 5px 0 0 0;
+}
+
+.list-section {
+    background: var(--card-bg);
+    padding: 15px;
+    border-radius: 16px;
+    margin-bottom: 15px;
+}
+
+.list-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #334155;
+    font-size: 14px;
+    align-items: center;
+}
+
+.setting-box {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 15px;
+    margin-bottom: 15px;
+    border: 1px solid #334155;
+}
+
+.history-card {
+    background: #0f172a;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    border-left: 5px solid var(--accent);
+}
+
+.overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(3px);
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+    touch-action: none;
+}
+
+.modal {
+    background: var(--card-bg);
+    width: 98%;
+    height: 94vh;
+    max-width: 840px;
+    border-radius: 20px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border: 1px solid #475569;
+    touch-action: none;
+}
+
+.modal-body {
+    display: flex;
+    gap: 12px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.order-sheet {
+    flex: 4;
+    background: #0f172a;
+    border-radius: 14px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.menu-portal {
+    flex: 6;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 0;
+}
+
+.category-tabs {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.cat-btn {
+    flex: 1;
+    padding: 10px;
+    background: #334155;
+    border: none;
+    color: #fff;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.cat-btn.active {
+    background: var(--accent);
+    color: #000;
+}
+
+.menu-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    overflow-y: auto;
+    flex: 1;
+    touch-action: pan-y !important;
+    -webkit-overflow-scrolling: touch;
+}
+
+.menu-item-btn {
+    background: #334155;
+    border: none;
+    border-radius: 12px;
+    padding: 12px;
+    color: #fff;
+    text-align: left;
+    cursor: pointer;
+    position: relative;
+    touch-action: manipulation;
+}
+
+.menu-item-btn:active {
+    transform: scale(0.97);
+}
+
+.menu-item-btn div {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.menu-item-btn .p {
+    color: var(--accent);
+    font-size: 12px;
+    margin-top: 3px;
+}
+
+.menu-item-btn.soldout {
+    opacity: 0.35;
+    pointer-events: none;
+    background: #1e293b;
+    border: 1px dashed var(--danger);
+}
+
+.menu-item-btn.soldout::after {
+    content: '품절';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--danger);
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.cart-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1e293b;
+    padding: 8px 10px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    flex-shrink: 0;
+}
+
+.cart-row.served-item {
+    opacity: 0.9;
+    background: #0f172a;
+    border: 1px dashed #475569;
+}
+
+.cart-item-name {
+    font-size: 14px;
+    font-weight: bold;
+    color: #fff;
+}
+
+.cart-row.served-item .cart-item-name {
+    text-decoration: none;
+    color: #cbd5e1;
+}
+
+.cart-row.cancelled {
+    opacity: 0.4;
+}
+
+.cart-row.cancelled .cart-item-name {
+    text-decoration: line-through;
+    color: var(--danger) !important;
+}
+
+.cart-qty-ctrl {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.qty-btn {
+    background: #475569;
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    touch-action: manipulation;
+}
+
+.qty-btn:active {
+    background: var(--accent);
+    color: #000;
+}
+
+.cart-qty-num {
+    font-size: 15px;
+    font-weight: bold;
+    width: 22px;
+    text-align: center;
+}
+
+#modal-cart-items {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    touch-action: pan-y !important;
+    -webkit-overflow-scrolling: touch;
+}
+
+.cart-total-summary-line {
+    border-top: 1px solid #334155;
+    padding-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.footer-btns {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.f-btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.f-btn:active {
+    filter: brightness(0.85);
+}
+
+.f-btn.save {
+    background: var(--success);
+    color: white;
+}
+
+.f-btn.serve {
+    background: #2e86de;
+    color: white;
+}
+
+.f-btn.clear {
+    background: var(--danger);
+    color: white;
+}
+
+.f-btn.reserve-btn {
+    background: var(--reserve);
+    color: white;
+}
+
+.toggle-soldout-btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: none;
+    font-weight: bold;
+    font-size: 12px;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.toggle-soldout-btn.on {
+    background: var(--success);
+    color: white;
+}
+
+.toggle-soldout-btn.off {
+    background: var(--danger);
+    color: white;
+}
+
+#setting-menu-list {
+    touch-action: pan-y !important;
+    -webkit-overflow-scrolling: touch;
+}
+
+.away-timer-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #0f172a;
+    padding: 4px 10px;
+    border-radius: 10px;
+    border: 1px solid #334155;
+    margin-left: auto;
+    margin-right: 15px;
+}
+
+.away-timer-label {
+    font-size: 11px;
+    color: var(--text-sub);
+    font-weight: bold;
+    transition: color 0.2s ease;
+}
+
+.away-timer-label.timeout {
+    color: var(--danger) !important;
+}
+
+.away-timer-clock {
+    font-family: monospace;
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--warning);
+    min-width: 48px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.away-timer-clock.timeout {
+    color: var(--danger);
+    animation: blinker 1s linear infinite;
+}
+
+.away-status-sub {
+    font-size: 10px;
+    color: #ff9f43;
+    font-weight: bold;
+    background: #2c1d11;
+    padding: 1px 4px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.away-btn-group {
+    display: flex;
+    gap: 4px;
+}
+
+.away-ctrl-btn {
+    background: #334155;
+    border: none;
+    color: white;
+    width: 26px;
+    height: 26px;
+    border-radius: 5px;
+    font-size: 11px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+.away-ctrl-btn:active {
+    background: var(--accent);
+    color: #000;
+}
+
+@keyframes blinker {
+    50% { opacity: 0; }
+}
+
+/* 대기 관리 화면 스타일 */
+.waiting-layout {
+    display: flex;
+    gap: 15px;
+    height: calc(100vh - 75px);
+    padding-bottom: 10px;
+}
+
+.waiting-column-left {
+    flex: 3.5;
+    background: var(--card-bg);
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+}
+
+.waiting-column-right {
+    flex: 6.5;
+    background: var(--card-bg);
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.waiting-card {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.waiting-card.called {
+    border-color: var(--warning);
+    background: #2a2211;
+    animation: blink-card 1.5s infinite alternate;
+}
+
+@keyframes blink-card {
+    0% { border-color: var(--warning); }
+    100% { border-color: rgba(251, 197, 49, 0.3); }
+}
+
+.waiting-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.waiting-card-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.waiting-card-actions button {
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: bold;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.waiting-card-actions button:active {
+    opacity: 0.8;
+}
+
+.waiting-action-call {
+    background: var(--warning);
+    color: #000;
+}
+
+.waiting-action-seat {
+    background: var(--success);
+    color: #fff;
+}
+
+.waiting-action-cancel {
+    background: var(--danger);
+    color: #fff;
+}
+
+/* 오늘 대기 기록 모달 테이블 스타일 */
+.waiting-history-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.waiting-history-table th, .waiting-history-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #334155;
+}
+
+.waiting-history-table th {
+    color: var(--accent);
+    font-weight: bold;
+}
+
+.waiting-history-table td {
+    color: #fff;
+    font-size: 13px;
+}
+
+.status-badge {
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: bold;
+    display: inline-block;
+}
+
+.status-badge.waiting {
+    background: #334155;
+    color: #fff;
+}
+
+.status-badge.called {
+    background: var(--warning);
+    color: #000;
+}
+
+.status-badge.seated {
+    background: var(--success);
+    color: #fff;
+}
+
+.status-badge.cancelled {
+    background: var(--danger);
+    color: #fff;
+}
+
+/* 대기 번호 고정 010 레이아웃 */
+.phone-input-wrapper {
+    display: flex;
+    align-items: center;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 0 12px;
+    gap: 8px;
+    height: 48px;
+}
+
+.phone-input-wrapper span.prefix {
+    font-size: 15px;
+    font-weight: bold;
+    color: var(--accent);
+    user-select: none;
+}
+
+.phone-input-wrapper span.divider {
+    color: #334155;
+    font-size: 15px;
+    user-select: none;
+}
+
+.phone-input-wrapper input {
+    background: transparent !important;
+    border: none !important;
+    color: #fff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 14px;
+    width: 100%;
+    outline: none;
+}
+
+/* 복사 피드백 */
+.waiting-card {
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+}
+
+.waiting-card.copied-flash {
+    border-color: var(--success) !important;
+    background: #112a20 !important;
+    transform: scale(0.98);
+}
+
+.waiting-card::before {
+    content: "✓ 연락처 복사됨";
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: var(--success);
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.waiting-card.copied-flash::before {
+    opacity: 1;
+}

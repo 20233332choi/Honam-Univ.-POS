@@ -1,0 +1,48 @@
+# ── Python ──────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+venv/
+.venv/
+env/
+.env
+
+# ── 데이터베이스 (실서비스 데이터 보호) ──
+database/pos.db
+database/*.db
+database/*.sqlite
+database/*.sqlite3
+*.db
+*.sqlite
+
+# ── Node.js ──────────────────────────────
+node_modules/
+package-lock.json
+package.json
+server.js
+
+# ── IDE / 에디터 ──────────────────────────
+.vscode/
+.idea/
+*.suo
+*.user
+*.swp
+*~
+
+# ── OS 파일 ──────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── 로그 ──────────────────────────────────
+*.log
+logs/
+
+# ── 기타 ──────────────────────────────────
+gitignore

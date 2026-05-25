@@ -1,0 +1,391 @@
+/* 직원 오더기 화면 전용 스타일시트 */
+:root {
+    --bg-color: #0f172a;
+    --card-bg: #1e293b;
+    --accent: #38bdf8;
+    --text-main: #f8fafc;
+    --text-sub: #94a3b8;
+    --danger: #ef4444;
+    --success: #10b981;
+    --warning: #f59e0b;
+}
+
+body {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+}
+
+h2 {
+    font-size: 18px;
+    margin: 5px 0 15px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.status-badge {
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: #334155;
+    color: var(--accent);
+}
+
+/* 테이블 그리드 스타일 */
+.section-title {
+    font-size: 13px;
+    color: var(--text-sub);
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+.table-select-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.t-btn {
+    background: #1e293b;
+    border: 2px solid #334155;
+    color: white;
+    padding: 12px 0;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.1s ease;
+}
+
+.t-btn.selected {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+}
+
+.t-btn.has-order {
+    border-color: var(--warning);
+    color: var(--warning);
+}
+
+.t-btn.reserved {
+    border-color: #9b59b6;
+    color: #9b59b6;
+    opacity: 0.6;
+}
+
+/* 카테고리 탭 */
+.category-container {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.cat-btn {
+    flex: 1;
+    padding: 10px 0;
+    background: #334155;
+    border: none;
+    color: white;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.cat-btn.active {
+    background: var(--text-main);
+    color: #000;
+}
+
+/* 메뉴 리스트 */
+.menu-list-box {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.menu-card {
+    background: var(--card-bg);
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 12px;
+    cursor: pointer;
+    position: relative;
+}
+
+.menu-card:active {
+    transform: scale(0.98);
+}
+
+.menu-card .name {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.menu-card .price {
+    font-size: 12px;
+    color: var(--accent);
+}
+
+.menu-card.soldout {
+    opacity: 0.3;
+    pointer-events: none;
+    border-style: dashed;
+}
+
+.menu-card.soldout::after {
+    content: '품절';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--danger);
+    color: white;
+    font-size: 10px;
+    padding: 1px 4px;
+    border-radius: 4px;
+}
+
+/* 장바구니 */
+.cart-box {
+    background: #1e293b;
+    border-radius: 14px;
+    padding: 12px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 60px;
+    min-height: 150px;
+}
+
+.cart-items {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 200px;
+}
+
+.cart-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #334155;
+    font-size: 13px;
+}
+
+.qty-controls button {
+    background: #334155;
+    border: none;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    font-size: 15px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #475569;
+    color: var(--accent);
+}
+
+/* 하단 전송 버튼 */
+.send-btn {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    color: white;
+    border: none;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.5);
+    z-index: 100;
+}
+
+.send-btn:disabled {
+    background: #334155;
+    color: var(--text-sub);
+    cursor: not-allowed;
+}
+
+/* 모바일용 탭바 스타일 */
+.mobile-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 15px;
+}
+
+.mobile-tabs .tab-btn {
+    flex: 1;
+    padding: 10px 0;
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: var(--text-sub);
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.mobile-tabs .tab-btn.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+}
+
+/* 대기 접수 및 현황판 스타일 */
+.order-app-screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-weight: bold;
+}
+
+.mobile-waiting-card {
+    background: var(--card-bg);
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.mobile-waiting-card.called {
+    border-color: var(--warning);
+    background: #2a2211;
+    animation: blink-card 1.5s infinite alternate;
+}
+
+@keyframes blink-card {
+    0% { border-color: var(--warning); }
+    100% { border-color: rgba(245, 158, 11, 0.3); }
+}
+
+.mobile-waiting-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mobile-waiting-card-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.mobile-waiting-card-actions button {
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: bold;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.mobile-waiting-card-actions button:active {
+    opacity: 0.8;
+}
+
+.mobile-waiting-action-call {
+    background: var(--warning);
+    color: #000;
+}
+
+.mobile-waiting-action-seat {
+    background: var(--success);
+    color: #fff;
+}
+
+.mobile-waiting-action-cancel {
+    background: var(--danger);
+    color: #fff;
+}
+
+/* 대기 번호 고정 010 레이아웃 */
+.phone-input-wrapper {
+    display: flex;
+    align-items: center;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 0 12px;
+    gap: 8px;
+    height: 48px;
+}
+
+.phone-input-wrapper span.prefix {
+    font-size: 15px;
+    font-weight: bold;
+    color: var(--accent);
+    user-select: none;
+}
+
+.phone-input-wrapper span.divider {
+    color: #334155;
+    font-size: 15px;
+    user-select: none;
+}
+
+.phone-input-wrapper input {
+    background: transparent !important;
+    border: none !important;
+    color: #fff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 14px;
+    width: 100%;
+    outline: none;
+}
+
+/* 모바일 카드 복사 피드백 */
+.mobile-waiting-card {
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+}
+
+.mobile-waiting-card.copied-flash {
+    border-color: var(--success) !important;
+    background: #112a20 !important;
+    transform: scale(0.98);
+}
+
+.mobile-waiting-card::before {
+    content: "✓ 복사됨";
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    background: var(--success);
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 1px 6px;
+    border-radius: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.mobile-waiting-card.copied-flash::before {
+    opacity: 1;
+}

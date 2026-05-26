@@ -46,12 +46,18 @@ def get_mobile_safe_time():
     now = datetime.now()
     return f"{now.hour:02d}:{now.minute:02d}:{now.second:02d}"
 
+def get_db_connection():
+    """SQLite 동시성 제어를 위한 타임아웃 확장 및 WAL 모드 활성화 커넥션 반환"""
+    conn = sqlite3.connect(DB_PATH, timeout=30.0)
+    conn.execute('PRAGMA journal_mode=WAL')
+    return conn
+
 def init_db():
     """데이터베이스 및 테이블 생성"""
     if not os.path.exists(DB_DIR):
         os.makedirs(DB_DIR)
         
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     # 1. tables 테이블 생성
@@ -163,7 +169,7 @@ def init_db():
 
 def load_shared_db():
     """DB 상태 로드 및 클라이언트 규격 가공"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     
@@ -316,9 +322,10 @@ def handle_place_order(data):
     new_items = data.get('items', {})
     cancels = data.get('cancels', {})
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        cursor.execute('BEGIN IMMEDIATE')
         # 1. 취소건 일괄 처리
         cooking_cancels = cancels.get('cooking', {}) if cancels else {}
         served_cancels = cancels.get('served', {}) if cancels else {}
@@ -377,9 +384,10 @@ def handle_complete_serving(data):
     if not data: return
     order_id = int(data.get('orderId'))
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        cursor.execute('BEGIN IMMEDIATE')
         # 1. 완료할 pending_order 조회
         cursor.execute('SELECT table_id, items FROM pending_orders WHERE order_id = ?', (order_id,))
         order_row = cursor.fetchone()
@@ -469,9 +477,10 @@ def handle_cancel_ticket(data):
     if not data: return
     order_id = int(data.get('orderId'))
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        cursor.execute('BEGIN IMMEDIATE')
         # 해당 티켓 조회
         cursor.execute('SELECT table_id, items FROM pending_orders WHERE order_id = ?', (order_id,))
         row = cursor.fetchone()
@@ -647,9 +656,10 @@ def handle_decrease_ordered_item(data):
     menu_name = data.get('menuName')
     item_type = data.get('type') # 'cooking' (조리중) 또는 'served' (서빙완료)
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        cursor.execute('BEGIN IMMEDIATE')
         decrease_item_internal(cursor, table_id, menu_name, item_type, 1)
         conn.commit()
         print(f"📉 #{table_id}번 테이블 {menu_name} ({item_type}) 1개 감산 처리 완료")
@@ -667,9 +677,10 @@ def handle_clear_table(data):
     if not data: return
     table_id = int(data.get('tableId'))
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        cursor.execute('BEGIN IMMEDIATE')
         cursor.execute('''
             UPDATE tables 
             SET status = 'empty', timestamp = NULL, price = 0, paid_price = 0, menus = '{}', paid_menus = '{}'
@@ -696,9 +707,10 @@ def handle_toggle_reservation(data):
     if not data: return
     table_id = int(data.get('tableId'))
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        cursor.execute('BEGIN IMMEDIATE')
         cursor.execute('SELECT status FROM tables WHERE table_id = ?', (table_id,))
         row = cursor.fetchone()
         if row:
@@ -729,9 +741,10 @@ def handle_toggle_sold_out(data):
     if not data: return
     menu_name = data.get('menuName')
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        cursor.execute('BEGIN IMMEDIATE')
         cursor.execute('SELECT is_sold_out FROM sold_out WHERE menu_name = ?', (menu_name,))
         row = cursor.fetchone()
         new_so = 1
@@ -758,9 +771,10 @@ def handle_toggle_check_item(data):
     order_id = int(data.get('orderId'))
     menu_name = data.get('menuName')
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        cursor.execute('BEGIN IMMEDIATE')
         cursor.execute('SELECT checked_items FROM pending_orders WHERE order_id = ?', (order_id,))
         row = cursor.fetchone()
         
@@ -784,9 +798,10 @@ def handle_control_away_timer(data):
     table_id = int(data.get('tableId'))
     action = data.get('action') # 'start', 'pause', 'reset'
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        cursor.execute('BEGIN IMMEDIATE')
         cursor.execute('SELECT time_left, started_at, running FROM away_timers WHERE table_id = ?', (table_id,))
         row = cursor.fetchone()
         
@@ -831,9 +846,10 @@ def handle_control_away_timer(data):
 @socketio.on('archiveDay')
 def handle_archive_day(data):
     """오늘 매출 마감 및 아카이브 저장"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        cursor.execute('BEGIN IMMEDIATE')
         cursor.execute('SELECT total_sales, item_sales FROM sales_summary WHERE id = 1')
         row = cursor.fetchone()
         total_sales = row[0] if row else 0
@@ -857,9 +873,10 @@ def handle_archive_day(data):
 @socketio.on('resetToday')
 def handle_reset_today(data):
     """오늘 데이터 초기화 (아카이브는 보존)"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        cursor.execute('BEGIN IMMEDIATE')
         cursor.execute('''
             UPDATE tables 
             SET status = 'empty', timestamp = NULL, price = 0, paid_price = 0, menus = '{}', paid_menus = '{}'
@@ -884,9 +901,10 @@ def handle_reset_today(data):
 @socketio.on('factoryReset')
 def handle_factory_reset(data):
     """시스템 전체 공장 초기화 (완전 삭제)"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        cursor.execute('BEGIN IMMEDIATE')
         cursor.execute('DELETE FROM tables')
         cursor.execute('DELETE FROM sales_summary')
         cursor.execute('DELETE FROM daily_archive')
@@ -924,9 +942,10 @@ def handle_add_waiting(data):
     people = int(data.get('people', 2))
     now_ms = int(time.time() * 1000)
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        cursor.execute('BEGIN IMMEDIATE')
         cursor.execute('''
             INSERT INTO waiting_list (name, phone, people, status, timestamp)
             VALUES (?, ?, ?, 'waiting', ?)
@@ -947,9 +966,10 @@ def handle_call_waiting(data):
     if not data: return
     w_id = int(data.get('id'))
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        cursor.execute('BEGIN IMMEDIATE')
         cursor.execute("UPDATE waiting_list SET status = 'called' WHERE id = ?", (w_id,))
         conn.commit()
         print(f"🔊 대기팀 호출 완료 (ID: {w_id})")
@@ -967,9 +987,10 @@ def handle_seat_waiting(data):
     if not data: return
     w_id = int(data.get('id'))
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        cursor.execute('BEGIN IMMEDIATE')
         cursor.execute("UPDATE waiting_list SET status = 'seated' WHERE id = ?", (w_id,))
         conn.commit()
         print(f"✅ 대기팀 입장 완료 (ID: {w_id})")
@@ -987,9 +1008,10 @@ def handle_cancel_waiting(data):
     if not data: return
     w_id = int(data.get('id'))
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        cursor.execute('BEGIN IMMEDIATE')
         cursor.execute("UPDATE waiting_list SET status = 'cancelled' WHERE id = ?", (w_id,))
         conn.commit()
         print(f"❌ 대기팀 취소 완료 (ID: {w_id})")
